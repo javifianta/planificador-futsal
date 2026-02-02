@@ -1,0 +1,92 @@
+[
+    {
+        "categoria": "C17",
+        "profe": "javier",
+        "nivel": "Formativo",
+        "cantidad": 17,
+        "dias": [
+            "Ma",
+            "Ju",
+            "Vi"
+        ],
+        "dias_partido": [
+            "Sa"
+        ],
+        "tiempo": "90' / 30' PF",
+        "materiales": "Pista 40x20, Conos, colchonetas, 10 pelotas, vayas de salto",
+        "velocidad": {
+            "g1": 0.0,
+            "g2": 0.0,
+            "g3": 0.0
+        },
+        "vam": {
+            "g1": 0.0,
+            "g2": 0.0,
+            "g3": 0.0
+        },
+        "rsa": {
+            "g1": 0.0,
+            "g2": 0.0,
+            "g3": 0.0
+        },
+        "lesiones": "Sin novedades"
+    },
+    {
+        "categoria": "C15",
+        "profe": "Chicho",
+        "nivel": "Formativo",
+        "cantidad": 20,
+        "dias": [
+            "Lu",
+            "Mi",
+            "Vi"
+        ],
+        "dias_partido": [
+            "Sa"
+        ],
+        "tiempo": "90' / 30' PF",
+        "materiales": "Pista 40x20, Conos, colchonetas, 10 pelotas",
+        "velocidad": {
+            "g1": 0.0,
+            "g2": 0.0,
+            "g3": 0.0
+        },
+        "vam": {
+            "g1": 4.5,
+            "g2": 4.3,
+            "g3": 4.0
+        },
+        "rsa": {
+            "g1": 0.0,
+            "g2": 0.0,
+            "g3": 0.0
+        },
+        "lesiones": "Sin novedades"
+    },
+    {
+        "categoria": "PRIMERA A",
+        "profe": "JAVIER",
+        "nivel": "Amateur",
+        "cantidad": 18,
+        "dias": [],
+        "dias_partido": [],
+        "tiempo": "90' / 30' PF",
+        "materiales": "Pista 40x20, Conos, Colchonetas, 10 pelotas, pecheras, vallas, escalones para saltos",
+        "velocidad": {
+            "g1": 0.0,
+            "g2": 0.0,
+            "g3": 0.0
+        },
+        "vam": {
+            "g1": 4.5,
+            "g2": 4.3,
+            "g3": 4.0
+        },
+        "rsa": {
+            "g1": 0.0,
+            "g2": 0.0,
+            "g3": 0.0
+        },
+        "lesiones": "UN JUGADOR CON RECUPERACION EN EL MES 9 DE LIGAMENTOS CRUZADOS"
+    }
+]
