@@ -808,9 +808,21 @@ with tab3:
             cur = filtered_planes[sel_idx_local]
             
             # Buscamos el índice real en st.session_state.planes para poder guardar/borrar
-            # (Usamos ID o referencia directa)
             real_idx = st.session_state.planes.index(cur)
-        
+            
+            # Botón de Eliminación Rápida
+            col_actions = st.columns([1, 5])
+            if col_actions[0].button("🗑️ Eliminar", key=f"del_btn_{cur['id']}"):
+                st.session_state[f"confirm_del_{cur['id']}"] = True
+            
+            if st.session_state.get(f"confirm_del_{cur['id']}", False):
+                st.warning(f"¿Estás seguro de que quieres borrar '{cur['titulo']}'?")
+                if st.button("✅ Confirmar Borrado", key=f"conf_del_{cur['id']}"):
+                    st.session_state.planes.pop(real_idx)
+                    save_json(DB_PLANES, st.session_state.planes)
+                    st.success("Plan eliminado.")
+                    st.rerun()
+
         # Tabs para Editar o Ver
         sub_t1, sub_t2, sub_t3 = st.tabs(["👁️ Vista Previa Renderizada", "📝 Editar Código (Markdown)", "✨ Refinar con IA"])
         

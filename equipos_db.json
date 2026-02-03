@@ -68,8 +68,13 @@
         "profe": "JAVIER",
         "nivel": "Amateur",
         "cantidad": 18,
-        "dias": [],
-        "dias_partido": [],
+        "dias": [
+            "Lu",
+            "Ma"
+        ],
+        "dias_partido": [
+            "Ju"
+        ],
         "tiempo": "90' / 30' PF",
         "materiales": "Pista 40x20, Conos, Colchonetas, 10 pelotas, pecheras, vallas, escalones para saltos",
         "velocidad": {
@@ -78,9 +83,9 @@
             "g3": 0.0
         },
         "vam": {
-            "g1": 4.5,
-            "g2": 4.3,
-            "g3": 4.0
+            "g1": 4.8,
+            "g2": 4.5,
+            "g3": 4.3
         },
         "rsa": {
             "g1": 0.0,
