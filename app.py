@@ -888,5 +888,4 @@ with tab3:
                 st.error(f"Error generando PDF: {e}")
         else:
             st.warning("⚠️ El módulo de PDF no está disponible en este servidor.")
-        except Exception as e:
-            st.error(f"Error generando PDF: {e}")
+
