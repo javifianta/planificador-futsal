@@ -3,5 +3,5 @@ google-generativeai
 python-dotenv
 pandas
 pypdf
-xhtml2pdf==0.2.11
+xhtml2pdf
 markdown
