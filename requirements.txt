@@ -5,3 +5,5 @@ pandas
 pypdf
 xhtml2pdf
 markdown
+reportlab
+html5lib
