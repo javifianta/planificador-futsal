@@ -7,12 +7,16 @@ import pandas as pd
 from pathlib import Path
 import datetime
 import uuid
-from pypdf import PdfReader
-from pypdf import PdfReader
-from xhtml2pdf import pisa
-import markdown
-import io
-import re
+try:
+    from pypdf import PdfReader
+    from xhtml2pdf import pisa
+    import markdown
+    import io
+    import re
+    PDF_AVAILABLE = True
+except ImportError as e:
+    PDF_AVAILABLE = False
+    print(f"PDF Prep Error: {e}")
 
 # --- 1. Configuración y Seguridad ---
 load_dotenv()
@@ -224,6 +228,9 @@ def load_library_context():
 # --- Helper: PDF Generator ---
 # --- Helper: PDF Generator (Advanced) ---
 def create_pdf(title, content):
+    if not PDF_AVAILABLE:
+        return None
+        
     # Convertir Markdown a HTML
     html_text = markdown.markdown(content, extensions=['tables'])
     
@@ -864,13 +871,22 @@ with tab3:
         
         # Botón descarga PDF fuera del form para evitar recargas incorrectas
         st.markdown("---")
-        try:
-            pdf_bytes = create_pdf(cur["titulo"], cur["contenido"])
-            st.download_button(
-                label="📥 Descargar Planificación (PDF)",
-                data=pdf_bytes,
-                file_name=f"Plan_{cur['id'][:8]}.pdf",
-                mime="application/pdf"
-            )
+        st.markdown("---")
+        if PDF_AVAILABLE:
+            try:
+                pdf_bytes = create_pdf(cur["titulo"], cur["contenido"])
+                if pdf_bytes:
+                    st.download_button(
+                        label="📥 Descargar Planificación (PDF)",
+                        data=pdf_bytes,
+                        file_name=f"Plan_{cur['id'][:8]}.pdf",
+                        mime="application/pdf"
+                    )
+                else:
+                    st.error("Error al generar PDF (Bytes vacíos).")
+            except Exception as e:
+                st.error(f"Error generando PDF: {e}")
+        else:
+            st.warning("⚠️ El módulo de PDF no está disponible en este servidor.")
         except Exception as e:
             st.error(f"Error generando PDF: {e}")
