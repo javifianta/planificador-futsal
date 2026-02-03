@@ -484,7 +484,27 @@ with tab2:
             sel_tipo = c_tp.selectbox("Tipo", ["Sesión Diaria", "Semanal", "Mensual", "Semestral", "Anual"])
             
             # --- SELECTOR DE CONTEXTO SIMPLIFICADO ---
-            relevant_plans = [p for p in st.session_state.planes if sel_eq in p['titulo']]
+            # 1. Filtro de Tipo para Contexto
+            filtro_tipo_ctx = c_ctx.selectbox("Filtrar Contexto por Tipo", ["Todos", "Sesión Diaria", "Semanal", "Mensual", "Semestral", "Anual"])
+            
+            # 2. Filtrar planes por Equipo Y Tipo
+            relevant_plans = []
+            for p in st.session_state.planes:
+                # Chequeo de Equipo
+                if sel_eq not in p['titulo']: continue
+                
+                # Chequeo de Tipo
+                p_tipo = p.get("tipo", "")
+                if not p_tipo: # Retro-compatibilidad: buscar en título
+                    if "Mensual" in p['titulo']: p_tipo = "Mensual"
+                    elif "Semanal" in p['titulo']: p_tipo = "Semanal"
+                    elif "Semestral" in p['titulo']: p_tipo = "Semestral"
+                    elif "Anual" in p['titulo']: p_tipo = "Anual"
+                    elif "Diaria" in p['titulo']: p_tipo = "Sesión Diaria"
+                
+                if filtro_tipo_ctx == "Todos" or filtro_tipo_ctx == p_tipo:
+                    relevant_plans.append(p)
+
             plan_opts = {f"{p['titulo']}": p for p in relevant_plans}
             
             ctx_options = ["Ninguno (General)"] + list(plan_opts.keys())
@@ -523,7 +543,8 @@ with tab2:
                     
                     st.session_state.planes.append({
                         "id": pid, 
-                        "titulo": final_title, 
+                        "titulo": final_title,
+                        "tipo": sel_tipo, # Guardamos el tipo explícitamente
                         "fecha": str(datetime.date.today()), 
                         "contenido": st.session_state.messages[-1]["content"]
                     })
