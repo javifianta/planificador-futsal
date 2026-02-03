@@ -3,6 +3,5 @@ google-generativeai
 python-dotenv
 pandas
 pypdf
-pypdf
 xhtml2pdf
 markdown
