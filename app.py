@@ -430,10 +430,12 @@ with tab1:
             if disabled:
                 st.caption("Desactivado")
                 return {"g1": 0.0, "g2": 0.0, "g3": 0.0}
+            # Generar KEY única combinando etiqueta y nombre de categoría para forzar refresco
+            unique_suffix = f"{k}_{equipo_actual.get('categoria', 'new')}"
             return {
-                "g1": st.number_input(f"G1", key=f"{k}_1", value=d.get("g1", 0.0), format="%.2f"),
-                "g2": st.number_input(f"G2", key=f"{k}_2", value=d.get("g2", 0.0), format="%.2f"),
-                "g3": st.number_input(f"G3", key=f"{k}_3", value=d.get("g3", 0.0), format="%.2f")
+                "g1": st.number_input(f"G1", key=f"{unique_suffix}_1", value=float(d.get("g1", 0.0)), format="%.2f"),
+                "g2": st.number_input(f"G2", key=f"{unique_suffix}_2", value=float(d.get("g2", 0.0)), format="%.2f"),
+                "g3": st.number_input(f"G3", key=f"{unique_suffix}_3", value=float(d.get("g3", 0.0)), format="%.2f")
             }
         
         with t1: 
