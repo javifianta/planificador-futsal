@@ -19,7 +19,7 @@ load_dotenv()
 
 st.set_page_config(
     page_title="Planificador Físico Futsal",
-    page_icon="⚽",
+    page_icon="logo.jpg",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -166,7 +166,8 @@ st.markdown("""
 api_key = os.getenv("GOOGLE_API_KEY")
 
 with st.sidebar:
-    st.title("⚽ PF Futsal Pro")
+    st.image("logo.jpg", use_container_width=True)
+    st.title("PF Futsal Pro")
     st.markdown("---")
     if api_key:
         st.success("🟢 Licencia Activada")
