@@ -3,7 +3,5 @@ google-generativeai
 python-dotenv
 pandas
 pypdf
-xhtml2pdf
+xhtml2pdf==0.2.11
 markdown
-reportlab
-html5lib
