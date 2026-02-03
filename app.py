@@ -755,7 +755,11 @@ with tab2:
 
 # --- TAB 3: MIS PLANES ---
 with tab3:
-    st.markdown('<h2 class="section-header">🗂️ Mis Planificaciones</h2>', unsafe_allow_html=True)
+    c_logo_tab3, c_title_tab3 = st.columns([1, 12])
+    with c_logo_tab3:
+        st.image("logo.jpg", width=60)
+    with c_title_tab3:
+         st.markdown('<h2 class="section-header" style="margin-top: 0;">Mis Planificaciones</h2>', unsafe_allow_html=True)
     
     # --- FILTRO POR EQUIPO ---
     if not st.session_state.planes:
@@ -763,14 +767,34 @@ with tab3:
     else:
         # Obtener lista de equipos disponibles + "Todos"
         all_teams = ["Todos"] + [e["categoria"] for e in st.session_state.equipos]
-        filter_team = st.selectbox("Filtrar por Equipo:", all_teams)
+        
+        c_fill_team, c_fill_cat = st.columns(2)
+        filter_team = c_fill_team.selectbox("Filtrar por Equipo:", all_teams)
+        filter_cat = c_fill_cat.selectbox("Filtrar por Categoría:", ["Todos", "Sesión Diaria", "Semanal", "Mensual", "Semestral", "Anual"])
         
         # Filtrar lista
-        if filter_team == "Todos":
-            filtered_planes = st.session_state.planes
-        else:
-            # Filtramos si el nombre del equipo está en el título del plan
-            filtered_planes = [p for p in st.session_state.planes if filter_team in p["titulo"]]
+        filtered_planes = []
+        for p in st.session_state.planes:
+             # Lógica Filtro Equipo
+             match_team = False
+             if filter_team == "Todos": match_team = True
+             elif filter_team in p['titulo']: match_team = True
+             
+             # Lógica Filtro Categoría
+             match_cat = False
+             p_tipo = p.get("tipo", "")
+             if not p_tipo: # Retro-compatibilidad
+                if "Mensual" in p['titulo']: p_tipo = "Mensual"
+                elif "Semanal" in p['titulo']: p_tipo = "Semanal"
+                elif "Semestral" in p['titulo']: p_tipo = "Semestral"
+                elif "Anual" in p['titulo']: p_tipo = "Anual"
+                elif "Diaria" in p['titulo']: p_tipo = "Sesión Diaria"
+            
+             if filter_cat == "Todos": match_cat = True
+             elif filter_cat == p_tipo: match_cat = True
+             
+             if match_team and match_cat:
+                 filtered_planes.append(p)
         
         if not filtered_planes:
             st.warning(f"No hay planes para '{filter_team}'.")
