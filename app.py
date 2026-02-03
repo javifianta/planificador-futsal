@@ -228,6 +228,14 @@ def create_pdf(title, content):
     try:
         from xhtml2pdf import pisa
         import markdown
+        import base64
+        
+        # Codificar logo en base64
+        logo_path = "logo.jpg"
+        logo_base64 = ""
+        if os.path.exists(logo_path):
+            with open(logo_path, "rb") as image_file:
+                logo_base64 = base64.b64encode(image_file.read()).decode()
     except ImportError:
         return None
         
@@ -292,10 +300,21 @@ def create_pdf(title, content):
         li { margin-bottom: 3px; }
         
         strong { color: #000; font-weight: bold; }
+
+        /* Logo en esquina superior derecha */
+        #header-logo {
+            position: absolute;
+            top: -20px;
+            right: 0px;
+            width: 80px;
+            height: auto;
+        }
     </style>
     """
     
     # HTML Completo
+    img_tag = f'<img id="header-logo" src="data:image/jpeg;base64,{logo_base64}"/>' if logo_base64 else ""
+
     full_html = f"""
     <!DOCTYPE html>
     <html>
@@ -304,6 +323,7 @@ def create_pdf(title, content):
         {css_style}
     </head>
     <body>
+        {img_tag}
         <h1>{title}</h1>
         <hr/>
         {html_text}
@@ -346,7 +366,12 @@ if "confirm_delete" not in st.session_state: st.session_state.confirm_delete = F
 library_text, library_count = load_library_context()
 
 # --- Layout ---
-st.markdown('<h1 class="main-header">⚽ Planificador Físico Futsal</h1>', unsafe_allow_html=True)
+# Header con Logo y Título
+c_logo, c_title = st.columns([1, 12])
+with c_logo:
+    st.image("logo.jpg", width=85)
+with c_title:
+    st.markdown('<h1 class="main-header" style="text-align: left; margin-top: 0;">Planificador Físico Futsal</h1>', unsafe_allow_html=True)
 
 tab1, tab2, tab3 = st.tabs(["🏢 Gestión de Club", "📋 Planificador IA (Chat)", "🗂️ Mis Planificaciones"])
 
