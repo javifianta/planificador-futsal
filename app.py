@@ -762,6 +762,11 @@ with tab3:
         st.image("logo.jpg", width=60)
     with c_title_tab3:
          st.markdown('<h2 class="section-header" style="margin-top: 0;">Mis Planificaciones</h2>', unsafe_allow_html=True)
+
+    if st.button("🔄 Refrescar Listado"):
+        st.session_state.planes = load_json(DB_PLANES)
+        st.success("Listado actualizado correctamente.")
+        st.rerun()
     
     # --- FILTRO POR EQUIPO ---
     if not st.session_state.planes:
