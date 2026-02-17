@@ -779,6 +779,9 @@ with tab3:
         filter_team = c_fill_team.selectbox("Filtrar por Equipo:", all_teams)
         filter_cat = c_fill_cat.selectbox("Filtrar por Categoría:", ["Todos", "Sesión Diaria", "Semanal", "Mensual", "Semestral", "Anual"])
         
+        # Filtro de Texto
+        search_text = st.text_input("🔍 Buscar por texto (Título o Contenido)", placeholder="Escribe para buscar...")
+
         # Filtrar lista
         filtered_planes = []
         for p in st.session_state.planes:
@@ -799,8 +802,15 @@ with tab3:
             
              if filter_cat == "Todos": match_cat = True
              elif filter_cat == p_tipo: match_cat = True
+
+             # Lógica Filtro Texto
+             match_text = True
+             if search_text:
+                 stxt = search_text.lower()
+                 if stxt not in p['titulo'].lower() and stxt not in p['contenido'].lower():
+                     match_text = False
              
-             if match_team and match_cat:
+             if match_team and match_cat and match_text:
                  filtered_planes.append(p)
         
         if not filtered_planes:
