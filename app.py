@@ -7,6 +7,8 @@ import pandas as pd
 from pathlib import Path
 import datetime
 import uuid
+import firebase_admin
+from firebase_admin import credentials, firestore
 try:
     from pypdf import PdfReader
     import io
@@ -171,6 +173,12 @@ with st.sidebar:
     st.markdown("---")
     if api_key:
         st.success("🟢 Licencia Activada")
+        if FIREBASE_ENABLED:
+            st.success("☁️ Firebase Conectado (Nube)")
+        else:
+            st.warning("⚠️ Guardando Localmente (Firebase Inactivo)")
+            with st.expander("Configurar Nube"):
+                st.info("Tus datos se borrarán al reiniciar la app local. Para guardar permanentemente, añade FIREBASE_CERT al archivo .env")
         genai.configure(api_key=api_key)
     else:
         st.warning("⚠️ Clave API requerida")
@@ -181,22 +189,16 @@ with st.sidebar:
             st.rerun()
 
 # --- Helper: Model ---
-def get_available_model():
-    preferred = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
-    try:
-        available = [m.name for m in genai.list_models() if "generateContent" in m.supported_generation_methods]
-        for p in preferred:
-            for a in available:
-                if p in a: return a
-        for a in available:
-            if "gemini" in a: return a
-        return "gemini-pro"
-    except: return "gemini-pro"
+def get_available_models():
+    # Retornamos estrictamente gemini-1.5-flash para garantizar que entra en la capa gratuita
+    return ["gemini-1.5-flash"]
+
+
 
 # --- Helper: PDF RAG ---
 @st.cache_resource(show_spinner=False)
-def load_library_context():
-    """Lee todos los PDFs de /biblioteca_futsal y extrae texto."""
+def load_library_context(max_chars=100000):
+    """Lee PDFs de /biblioteca_futsal extrae texto hasta un límite de caracteres."""
     path = Path("biblioteca_futsal")
     full_text = ""
     file_count = 0
@@ -206,21 +208,23 @@ def load_library_context():
     
     files = list(path.glob("*.pdf"))
     for pdf_file in files:
+        if len(full_text) >= max_chars:
+            break
+            
         try:
             reader = PdfReader(pdf_file)
-            # Leer primeras 20 paginas de cada libro para no saturar si son muy grandes, o todo si es corto.
-            # Ajuste: Leer todo pero limitar char count globalmente si es necesario.
-            # Por ahora leemos todo el texto extraíble.
             text = ""
             for page in reader.pages:
                 text += page.extract_text() + "\n"
+                if len(full_text) + len(text) >= max_chars:
+                    break
             
             full_text += f"\n--- INFORMACIÓN DEL LIBRO: {pdf_file.name} ---\n{text}\n"
             file_count += 1
         except Exception as e:
             print(f"Error leyendo {pdf_file}: {e}")
             
-    return full_text, file_count
+    return full_text[:max_chars], file_count
 
 # --- Helper: PDF Generator ---
 # --- Helper: PDF Generator (Advanced) ---
@@ -344,26 +348,81 @@ def create_pdf(title, content):
 DB_EQUIPOS = "equipos_db.json"
 DB_PLANES = "planificaciones_db.json"
 
+def init_firebase():
+    if not firebase_admin._apps:
+        try:
+            if "firebase" in st.secrets:
+                cred_dict = dict(st.secrets["firebase"])
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                return True
+        except: pass
+        
+        fb_cert = os.getenv("FIREBASE_CERT")
+        if fb_cert:
+            try:
+                cred_dict = json.loads(fb_cert)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                return True
+            except: pass
+                
+        if os.path.exists("firebase_credentials.json"):
+            try:
+                cred = credentials.Certificate("firebase_credentials.json")
+                firebase_admin.initialize_app(cred)
+                return True
+            except: pass
+    return bool(firebase_admin._apps)
+
+FIREBASE_ENABLED = init_firebase()
+if FIREBASE_ENABLED:
+    db = firestore.client()
+
 def load_json(filepath):
+    if FIREBASE_ENABLED:
+        try:
+            doc_id = "equipos" if filepath == DB_EQUIPOS else "planes"
+            doc = db.collection("futsal_data").document(doc_id).get()
+            if doc.exists:
+                data = doc.to_dict().get("data", [])
+                if data: return data
+        except Exception as e:
+            print("Error cargando Firebase:", e)
+
     if not os.path.exists(filepath): return []
     try:
         with open(filepath, "r", encoding="utf-8") as f: return json.load(f)
     except: return []
 
 def save_json(filepath, data):
+    local_saved = False
     try:
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-        return True
-    except: return False
+        local_saved = True
+    except: pass
+    
+    if FIREBASE_ENABLED:
+        try:
+            doc_id = "equipos" if filepath == DB_EQUIPOS else "planes"
+            db.collection("futsal_data").document(doc_id).set({"data": data})
+            return True
+        except: pass
+        
+    return local_saved
 
 if "equipos" not in st.session_state: st.session_state.equipos = load_json(DB_EQUIPOS)
 if "planes" not in st.session_state: st.session_state.planes = load_json(DB_PLANES)
 if "messages" not in st.session_state: st.session_state.messages = []
 if "confirm_delete" not in st.session_state: st.session_state.confirm_delete = False
 
+# Inicializamos límite de caracteres (se puede modificar en la UI)
+if "max_context_chars" not in st.session_state:
+    st.session_state.max_context_chars = 10000
+
 # Cargamos contexto PDF al iniciar (cacheado)
-library_text, library_count = load_library_context()
+library_text, library_count = load_library_context(st.session_state.max_context_chars)
 
 # --- Layout ---
 # Header con Logo y Título
@@ -521,9 +580,27 @@ with tab2:
         
         # Mostrar info de biblioteca
         if library_count > 0:
-            st.caption(f"📚 {library_count} Documentos cargados en memoria. Se usarán como referencia técnica.")
+            st.caption(f"📚 {library_count} Documentos cargados. Longitud límite actual: {st.session_state.max_context_chars} caracteres.")
         else:
             st.caption("⚠️ No se detectaron documentos en 'biblioteca_futsal'. Se usará conocimiento general.")
+
+        # === SLIDER DE TOKENS VISIBLE AQUÍ ===
+        with st.expander("⚙️ Opciones de Consumo de IA (Límites de Lectura)", expanded=True):
+            st.markdown("Si tienes el error **Quota 429**, baja radicalmente esta barra a 0 o a 1000.")
+            nuevo_limite = st.slider(
+                "Límite de lectura de libros (Caracteres)", 
+                min_value=0, 
+                max_value=150000, 
+                value=st.session_state.max_context_chars, 
+                step=5000, 
+                help="Limita lo que la IA lee de tus libros para ahorrar cuota de la API gratuita."
+            )
+            if nuevo_limite != st.session_state.max_context_chars:
+                st.session_state.max_context_chars = nuevo_limite
+                # Limpiamos caché forzadamente y recargamos
+                st.cache_resource.clear()
+                st.rerun()
+        # =====================================
 
         # Chat logic
         for msg in st.session_state.messages:
@@ -655,10 +732,10 @@ with tab2:
             # B) Si no, usamos la lista de referencia general (lo que ya teniamos)
             saved_plans_str = ""
             if not selected_prev_plan_content and relevant_plans:
-                saved_plans_str = "=== OTROS PLANES PREVIOS DEL EQUIPO (REFERENCIA) ===\n"
-                for p in relevant_plans[-3:]:
-                    saved_plans_str += f"- {p['titulo']}: {p['contenido'][:400]}...\n"
-                saved_plans_str += "====================================================\n"
+                saved_plans_str = "=== PLANIFICACIONES PREVIAS DEL EQUIPO (ÚLTIMAS 3) ===\n"
+                for p in relevant_plans[-3:]: # Solo las últimas 3 planificaciones para evitar límite de Tokens Gratuitos
+                    saved_plans_str += f"\n--- TÍTULO: {p['titulo']} ---\n{p['contenido']}\n"
+                saved_plans_str += "======================================================================\n"
 
             # Construir historial (Contexto)
             history_str = ""
@@ -681,10 +758,12 @@ with tab2:
             if specific_plan_context:
                 sys_parts.append(specific_plan_context)
             
-            sys_parts.append("=== BIBLIOTECA TECNICA (Contexto Real de Archivos) ===")
-            sys_parts.append(f"{library_text[:100000]}")
-            sys_parts.append("(Nota: Texto truncado si es excesivo, usa esto como base teorica prioritaria).")
-            sys_parts.append("=====================================================")
+            if library_text:
+                sys_parts.append("=== BIBLIOTECA TECNICA (Contexto Real de Archivos) ===")
+                # Asegurar envío acorde al slider
+                sys_parts.append(f"{library_text}")
+                sys_parts.append("(Nota: Texto truncado si es excesivo, usa esto como base teorica prioritaria).")
+                sys_parts.append("=====================================================")
             
             if saved_plans_str:
                 sys_parts.append(saved_plans_str)
@@ -746,14 +825,30 @@ with tab2:
                     st.error("Falta API Key")
                 else:
                     try:
-                        mname = get_available_model()
-                        model = genai.GenerativeModel(mname)
-                        resp = model.generate_content(sys)
-                        txt = resp.text
-                        ph.markdown(txt)
-                        st.session_state.messages.append({"role": "assistant", "content": txt})
-                        st.rerun()
-                    except Exception as e: st.error(f"Error AI: {e}")
+                        models_to_try = get_available_models()
+                        success = False
+                        last_error = ""
+                        for mname in models_to_try:
+                            try:
+                                model = genai.GenerativeModel(mname)
+                                resp = model.generate_content(sys)
+                                txt = resp.text
+                                ph.markdown(txt)
+                                st.session_state.messages.append({"role": "assistant", "content": txt})
+                                success = True
+                                break # Salir del loop si funciona correctamente
+                            except Exception as e:
+                                last_error = str(e)
+                                if "429" in last_error or "Quota" in last_error or "quota" in last_error:
+                                    break # No intentar otros modelos si es límite de cuota (evitar errores extraños)
+                                continue # Intentar el siguiente modelo si es otro error
+                        
+                        if success:
+                            st.rerun()
+                        else:
+                            st.error(f"Error AI: Límite de cuota o bloqueado en capa gratuita. Intenta bajar el Límite de Contexto. Error Técnico: {last_error}")
+                    except Exception as e: 
+                        st.error(f"Error AI Crítico: {e}")
 
 # --- TAB 3: MIS PLANES ---
 with tab3:
@@ -905,13 +1000,13 @@ with tab3:
                                [Breve explicación técnica de por qué hiciste estos cambios]
                             """
                             
-                            # Intentar usar el modelo preferido o fallback
+                            # Intentar usar el modelo preferido
                             try:
-                                mname = get_available_model()
+                                mname = get_available_models()[0]
                                 model_refine = genai.GenerativeModel(mname)
                             except:
                                 # Fallback extremo si falla la funcion
-                                model_refine = genai.GenerativeModel("gemini-pro")
+                                model_refine = genai.GenerativeModel("gemini-1.5-flash")
                                 
                             resp_refine = model_refine.generate_content(sys_refine)
                             full_text = resp_refine.text
