@@ -5,3 +5,4 @@ pandas
 pypdf
 xhtml2pdf
 markdown
+firebase-admin
