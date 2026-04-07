@@ -167,6 +167,42 @@ st.markdown("""
 # --- Gestión de API Key ---
 api_key = os.getenv("GOOGLE_API_KEY")
 
+# --- Persistencia y Firebase ---
+DB_EQUIPOS = "equipos_db.json"
+DB_PLANES = "planificaciones_db.json"
+
+def init_firebase():
+    if not firebase_admin._apps:
+        try:
+            if "firebase" in st.secrets:
+                cred_dict = dict(st.secrets["firebase"])
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                return True
+        except: pass
+        
+        fb_cert = os.getenv("FIREBASE_CERT")
+        if fb_cert:
+            try:
+                cred_dict = json.loads(fb_cert)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+                return True
+            except: pass
+                
+        if os.path.exists("firebase_credentials.json"):
+            try:
+                cred = credentials.Certificate("firebase_credentials.json")
+                firebase_admin.initialize_app(cred)
+                return True
+            except: pass
+    return bool(firebase_admin._apps)
+
+FIREBASE_ENABLED = init_firebase()
+if FIREBASE_ENABLED:
+    db = firestore.client()
+
+
 with st.sidebar:
     st.image("logo.jpg", use_container_width=True)
     st.title("PF Futsal Pro")
@@ -344,40 +380,7 @@ def create_pdf(title, content):
     
     return pdf_buffer.getvalue()
 
-# --- Persistencia ---
-DB_EQUIPOS = "equipos_db.json"
-DB_PLANES = "planificaciones_db.json"
 
-def init_firebase():
-    if not firebase_admin._apps:
-        try:
-            if "firebase" in st.secrets:
-                cred_dict = dict(st.secrets["firebase"])
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
-                return True
-        except: pass
-        
-        fb_cert = os.getenv("FIREBASE_CERT")
-        if fb_cert:
-            try:
-                cred_dict = json.loads(fb_cert)
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
-                return True
-            except: pass
-                
-        if os.path.exists("firebase_credentials.json"):
-            try:
-                cred = credentials.Certificate("firebase_credentials.json")
-                firebase_admin.initialize_app(cred)
-                return True
-            except: pass
-    return bool(firebase_admin._apps)
-
-FIREBASE_ENABLED = init_firebase()
-if FIREBASE_ENABLED:
-    db = firestore.client()
 
 def load_json(filepath):
     if FIREBASE_ENABLED:
