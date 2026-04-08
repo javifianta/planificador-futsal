@@ -226,8 +226,29 @@ with st.sidebar:
 
 # --- Helper: Model ---
 def get_available_models():
-    # Retornamos estrictamente gemini-1.5-flash para garantizar que entra en la capa gratuita
-    return ["gemini-1.5-flash"]
+    # Intenta obtener de manera dinámica priorizando Flash/Lite sobre Pro 
+    # (Pro tira error 429 limit:0, y 1.5 tira error 404)
+    try:
+        available = [m.name for m in genai.list_models() if "generateContent" in m.supported_generation_methods]
+        models_to_try = []
+        preferencias = [
+            "gemini-3.1-flash-lite",
+            "gemini-2.5-flash", 
+            "gemini-3-flash",
+            "gemini-flash"
+        ]
+        for pref in preferencias:
+            for a in available:
+                if pref in a and "pro" not in a.lower() and a not in models_to_try:
+                    models_to_try.append(a)
+        
+        # Fallback de seguridad usando nombres completos
+        if not models_to_try:
+            return ["models/gemini-2.5-flash", "models/gemini-3.1-flash-lite"]
+        return models_to_try
+    except:
+        return ["models/gemini-2.5-flash"]
+
 
 
 
@@ -1009,7 +1030,7 @@ with tab3:
                                 model_refine = genai.GenerativeModel(mname)
                             except:
                                 # Fallback extremo si falla la funcion
-                                model_refine = genai.GenerativeModel("gemini-1.5-flash")
+                                model_refine = genai.GenerativeModel("models/gemini-2.5-flash")
                                 
                             resp_refine = model_refine.generate_content(sys_refine)
                             full_text = resp_refine.text
